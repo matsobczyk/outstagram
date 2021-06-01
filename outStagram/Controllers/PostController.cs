@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
@@ -43,6 +44,31 @@ namespace outStagram.Controllers
             }
 
             return Post;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([Bind("id,title,description,author,pictureFile")][FromForm] Post post)
+        {
+           // if (ModelState.IsValid)
+            {   // saving pictures of posts to wwwroot/pictures 
+                string wwwRootPath = _hostEnvironment.WebRootPath;
+                string fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
+                string extension = Path.GetExtension(post.pictureFile.FileName);
+                post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
+                string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
+
+                using (var fileStream = new FileStream(path, FileMode.Create))
+                {
+                    await post.pictureFile.CopyToAsync(fileStream);
+                }
+
+
+                _context.Add(post);
+                await _context.SaveChangesAsync();
+                return Ok();
+                // return Created("dodano post o id: ",post.id);
+            }
+            //return View(artPiece);
         }
     }
 }
