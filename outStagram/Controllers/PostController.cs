@@ -65,10 +65,50 @@ namespace outStagram.Controllers
 
                 _context.Add(post);
                 await _context.SaveChangesAsync();
-                return Ok();
-                // return Created("dodano post o id: ",post.id);
+                //return Ok();
+                return Created("","dodano post o id: " +  post.id);
             }
-            //return View(artPiece);
+        }
+
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> Patch([Bind("id,title,description,author,pictureFile")][FromForm] int id, Post post)
+        {
+            if (id != post.id)
+            {
+                return BadRequest();
+            }
+
+            string wwwRootPath = _hostEnvironment.WebRootPath;
+            string fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
+            string extension = Path.GetExtension(post.pictureFile.FileName);
+            post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
+            string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
+
+            using (var fileStream = new FileStream(path, FileMode.Create))
+            {
+                post.pictureFile.CopyTo(fileStream);
+            }
+
+            _context.Posts.Update(post);
+            _context.SaveChanges();
+
+            return Ok(post);
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult DeletePost(int id)
+        {
+            var Post = _context.Posts.Find(id);
+
+            if (Post == null)
+            {
+                return NotFound();
+            }
+
+            _context.Posts.Remove(Post);
+            _context.SaveChanges();
+
+            return Ok(Post);
         }
     }
 }
