@@ -28,7 +28,10 @@ namespace outStagram
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
-            services.AddDbContext<PostContext>(options => options.UseInMemoryDatabase("Posts"));
+            services.AddDbContext<PostContext>(options => options.UseSqlServer(Configuration.GetConnectionString("PostContext")));
+            services.AddCors();
+
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -38,6 +41,15 @@ namespace outStagram
             {
                 app.UseDeveloperExceptionPage();
             }
+            else
+            {
+                app.UseExceptionHandler("/error");
+            }
+
+            app.UseCors(builder => builder
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader());
 
             app.UseHttpsRedirection();
 

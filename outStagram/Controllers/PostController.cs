@@ -10,6 +10,13 @@ using outStagram.Models;
 
 namespace outStagram.Controllers
 {
+    [ApiController]
+    public class ErrorController : ControllerBase
+    {
+        [Route("/error")]
+        public IActionResult Error() => Problem();
+    }
+
     [Route("api/[controller]")]
     [ApiController]
     public class PostController : ControllerBase
@@ -20,13 +27,8 @@ namespace outStagram.Controllers
         {
             _context = context;
             _hostEnvironment = hostEnvironment;
-
-            if (_context.Posts.Count() == 0)
-            {
-                _context.Posts.Add(new Post { id=1, title = "Post 1", description="lalal", author="Autor" });;
-                _context.SaveChanges();
-            }
         }
+
         [HttpGet]
         public IEnumerable<Post> GetPosts()
         {
@@ -49,29 +51,39 @@ namespace outStagram.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([Bind("id,title,description,author,pictureFile")][FromForm] Post post)
         {
-           // if (ModelState.IsValid)
-            {   // saving pictures of posts to wwwroot/pictures 
-                string wwwRootPath = _hostEnvironment.WebRootPath;
-                string fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
-                string extension = Path.GetExtension(post.pictureFile.FileName);
-                post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
-                string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
-
-                using (var fileStream = new FileStream(path, FileMode.Create))
+                try
                 {
-                    await post.pictureFile.CopyToAsync(fileStream);
+                    string wwwRootPath = _hostEnvironment.WebRootPath;
+                    string fileName;
+                     fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
+                    string extension = Path.GetExtension(post.pictureFile.FileName);
+                    post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
+                    string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
+
+                    using (var fileStream = new FileStream(path, FileMode.Create))
+                    {
+                        await post.pictureFile.CopyToAsync(fileStream);
+                    }
+                }
+                catch (NullReferenceException  e )
+                {
+                    return Ok(e.Message);
+                }
+                catch (Exception e)
+                {
+                    return Ok(e.Message);
                 }
 
-
                 _context.Add(post);
-                await _context.SaveChangesAsync();
-                //return Ok();
-                return Created("","dodano post o id: " +  post.id);
-            }
+                    await _context.SaveChangesAsync();
+                    //return Ok();
+                    return Created("","dodano post o id: " +  post.id);
+                
+                
         }
 
         [HttpPatch("{id}")]
-        public async Task<IActionResult> Patch([Bind("id,title,description,author,pictureFile")][FromForm] int id, Post post)
+        public async Task<IActionResult> Patch([FromRoute] int id, [Bind("id,title,description,author,pictureFile")] Post post)
         {
             if (id != post.id)
             {
@@ -92,7 +104,7 @@ namespace outStagram.Controllers
             _context.Posts.Update(post);
             _context.SaveChanges();
 
-            return Ok(post);
+            return Ok();
         }
 
         [HttpDelete("{id}")]
