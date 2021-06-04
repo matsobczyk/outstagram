@@ -32,7 +32,26 @@ namespace outStagram.Controllers
         [HttpGet]
         public IEnumerable<Post> GetPosts()
         {
+            List<Post> posts2 = new List<Post>();
             return _context.Posts.ToList();
+        }
+
+
+        //nie dzia³a!!!!
+        [HttpGet("/postimage/{id}")]
+        public ActionResult<Post> GetPostImage(int id)
+        {
+            var Post = _context.Posts.Find(id);
+            var image = System.IO.File.OpenRead(@"C:\sem4\outstagram\outstagram\outStagram\wwwroot\pictures\default.jpg");
+            try
+            {
+                image = System.IO.File.OpenRead(@"C:\sem4\outstagram\outstagram\outStagram\wwwroot\pictures\" + Post.pictureUrl);
+            }
+            catch (NullReferenceException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            return File(image, "image/jpg");
         }
 
         [HttpGet("{id}")]
@@ -40,39 +59,35 @@ namespace outStagram.Controllers
         {
             var Post = _context.Posts.Find(id);
 
-            if (Post == null)
-            {
-                return NotFound();
-            }
-
             return Post;
         }
 
         [HttpPost]
         public async Task<IActionResult> Create([Bind("id,title,description,author,pictureFile")][FromForm] Post post)
         {
-                try
-                {
-                    string wwwRootPath = _hostEnvironment.WebRootPath;
-                    string fileName;
-                     fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
-                    string extension = Path.GetExtension(post.pictureFile.FileName);
-                    post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
-                    string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
+            
+                string wwwRootPath = _hostEnvironment.WebRootPath;
+                string fileName;
+            try
+            {
+                fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
+                string extension = Path.GetExtension(post.pictureFile.FileName);
+                post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
+                string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
 
-                    using (var fileStream = new FileStream(path, FileMode.Create))
-                    {
-                        await post.pictureFile.CopyToAsync(fileStream);
-                    }
-                }
-                catch (NullReferenceException  e )
+                using (var fileStream = new FileStream(path, FileMode.Create))
                 {
-                    return Ok(e.Message);
+                    await post.pictureFile.CopyToAsync(fileStream);
                 }
-                catch (Exception e)
-                {
-                    return Ok(e.Message);
-                }
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                post.pictureUrl = "default.jpg";
+            }
+
+
 
                 _context.Add(post);
                     await _context.SaveChangesAsync();
@@ -90,22 +105,33 @@ namespace outStagram.Controllers
                 return BadRequest();
             }
 
-            string wwwRootPath = _hostEnvironment.WebRootPath;
-            string fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
-            string extension = Path.GetExtension(post.pictureFile.FileName);
-            post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
-            string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
 
-            using (var fileStream = new FileStream(path, FileMode.Create))
+            string wwwRootPath = _hostEnvironment.WebRootPath;
+            string fileName;
+            try
             {
-                post.pictureFile.CopyTo(fileStream);
+                fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
+                string extension = Path.GetExtension(post.pictureFile.FileName);
+                post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
+                string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
+
+                using (var fileStream = new FileStream(path, FileMode.Create))
+                {
+                    await post.pictureFile.CopyToAsync(fileStream);
+                }
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                post.pictureUrl = "default.jpg";
             }
 
             _context.Posts.Update(post);
-            _context.SaveChanges();
+                _context.SaveChanges();
 
-            return Ok();
-        }
+                return Ok();
+            }
 
         [HttpDelete("{id}")]
         public IActionResult DeletePost(int id)
