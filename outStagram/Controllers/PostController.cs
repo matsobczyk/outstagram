@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using EasyNetQ;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -61,7 +62,15 @@ namespace outStagram.Controllers
         {
             try
             {
+                var messageBus = RabbitHutch.CreateBus("host=localhost");
+
                 var Post = _context.Posts.Find(id);
+                
+                if(Post != null)
+                {
+                    messageBus.PubSub.Publish<Post>(Post);
+                }
+                
                 if (Post == null)
                 {
                     return NotFound("There are no posts in database");
