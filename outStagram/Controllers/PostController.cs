@@ -98,39 +98,17 @@ namespace outStagram.Controllers
         }
 
         [HttpPatch("{id}")]
-        public async Task<IActionResult> Patch([FromRoute] int id, [Bind("id,title,description,author,pictureFile")] Post post)
+        public async Task<IActionResult> Patch(int id, Post post)
         {
+
             if (id != post.id)
             {
                 return BadRequest();
             }
 
-
-            string wwwRootPath = _hostEnvironment.WebRootPath;
-            string fileName;
-            try
-            {
-                fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
-                string extension = Path.GetExtension(post.pictureFile.FileName);
-                post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
-                string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
-
-                using (var fileStream = new FileStream(path, FileMode.Create))
-                {
-                    await post.pictureFile.CopyToAsync(fileStream);
-                }
-
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-                post.pictureUrl = "default.jpg";
-            }
-
             _context.Posts.Update(post);
-                _context.SaveChanges();
-
-                return Ok();
+            _context.SaveChanges();
+            return Ok("Zaktualizowano post " +post.id);
             }
 
         [HttpDelete("{id}")]

@@ -9,7 +9,7 @@ using outStagram.Models;
 namespace outStagram.Migrations
 {
     [DbContext(typeof(PostContext))]
-    [Migration("20210603172031_Initial")]
+    [Migration("20210604211525_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
