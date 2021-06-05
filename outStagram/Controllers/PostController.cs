@@ -38,14 +38,17 @@ namespace outStagram.Controllers
         [HttpGet("{id}")]
         public ActionResult<Post> GetPost(int id)
         {
-            var Post = _context.Posts.Find(id);
+            //var Post = _context.Posts.Find(id);
 
-            if (Post == null)
-            {
-                return NotFound();
-            }
+            //if (Post == null)
+            //{
+            //    return NotFound();
+            //}
 
-            return Post;
+            //return Post;
+
+            var image = System.IO.File.OpenRead("/Users/mateuszsobczyk/Projects/outStagram/outStagram/wwwroot/pictures/" + "picture.png");
+            return File(image, "image/png");
         }
 
         [HttpPost]
