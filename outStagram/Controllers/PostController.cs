@@ -74,6 +74,7 @@ namespace outStagram.Controllers
             }
         }
 
+
         [HttpPost]
         public async Task<IActionResult> Create([Bind("id,title,description,author,pictureFile")][FromForm] Post post)
         {
@@ -83,15 +84,25 @@ namespace outStagram.Controllers
 
             try
             {
-                fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
-                string extension = Path.GetExtension(post.pictureFile.FileName);
-                post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
-                string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
-
-                using (var fileStream = new FileStream(path, FileMode.Create))
+                try
                 {
-                    await post.pictureFile.CopyToAsync(fileStream);
+                    fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
+                    string extension = Path.GetExtension(post.pictureFile.FileName);
+                    post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
+                    string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
+
+                    using (var fileStream = new FileStream(path, FileMode.Create))
+                    {
+                        await post.pictureFile.CopyToAsync(fileStream);
+                    }
+
                 }
+                catch (Exception e)
+                {
+                    Console.WriteLine("picture not found");
+                    post.pictureUrl = "default.jpg";
+                }
+
 
                 if (post == null)
                 {
@@ -104,12 +115,12 @@ namespace outStagram.Controllers
                     return Created("", "dodano post o id: " + post.id);
                 }
 
-
             }
             catch (Exception e)
             {
                 return BadRequest(new { errorMessage = e.Message });
             }
+
 
         }
 
@@ -118,26 +129,34 @@ namespace outStagram.Controllers
         {
             try
             {
-                if (id != post.id)
+                Post postOld = _context.Posts
+               .Where(l => l.id == id)
+               .FirstOrDefault();
+
+                if (postOld == null)
                 {
-                    return NotFound();
-                }
-                else if (post == null)
+                    throw new Exception("post not found");
+                }else if (post == null)
                 {
-                    return NotFound("Your post is empty!");
+                    throw new Exception("wrong request");
                 }
-                else
-                {
-                    _context.Posts.Update(post);
-                    _context.SaveChanges();
-                    return Ok("Zaktualizowano post " + post.id);
-                }
+
+                postOld.title = post.title;
+                postOld.description = post.description;
+                postOld.author = post.author;
+
+                _context.Posts.Update(postOld);
+                _context.SaveChanges();
+                return Ok("Zaktualizowano post " + postOld.id);
+                
             }
             catch (Exception e)
             {
                 return BadRequest(new { errorMessage = e.Message });
             }
-        }
+
+
+        } 
 
 
 
