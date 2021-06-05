@@ -6,16 +6,11 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using outStagram.Models;
 
 namespace outStagram.Controllers
 {
-    [ApiController]
-    public class ErrorController : ControllerBase
-    {
-        [Route("/error")]
-        public IActionResult Error() => Problem();
-    }
 
     [Route("api/[controller]")]
     [ApiController]
@@ -32,98 +27,142 @@ namespace outStagram.Controllers
         [HttpGet]
         public IEnumerable<Post> GetPosts()
         {
-            return _context.Posts.ToList();
+            try
+            {
+                List<Post> posts = new List<Post>();
+                return _context.Posts.ToList();
+            }
+            catch
+            {
+                Response.StatusCode = 500;
+            }
+            return null;
+        }
+
+        [HttpGet("/postimage/{id}")]
+        public ActionResult<Post> GetPostImage(int id)
+        {
+            var image = System.IO.File.OpenRead(@"C:\sem4\outstagram\outstagram\outStagram\wwwroot\pictures\default.jpg");
+            try
+            {
+                var Post = _context.Posts.Find(id);
+                image = System.IO.File.OpenRead(@"C:\sem4\outstagram\outstagram\outStagram\wwwroot\pictures\" + Post.pictureUrl);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return StatusCode(500, "Something went wrong");
+            }
+            return File(image, "image/jpg");
         }
 
         [HttpGet("{id}")]
         public ActionResult<Post> GetPost(int id)
         {
-            //var Post = _context.Posts.Find(id);
-
-            //if (Post == null)
-            //{
-            //    return NotFound();
-            //}
-
-            //return Post;
-
-            var image = System.IO.File.OpenRead("/Users/mateuszsobczyk/Projects/outStagram/outStagram/wwwroot/pictures/" + "picture.png");
-            return File(image, "image/png");
+            try
+            {
+                var Post = _context.Posts.Find(id);
+                if (Post == null)
+                {
+                    return NotFound("There are no posts in database");
+                }
+                return Post;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { errorMessage = ex.Message });
+            }
         }
 
         [HttpPost]
         public async Task<IActionResult> Create([Bind("id,title,description,author,pictureFile")][FromForm] Post post)
         {
-                try
-                {
-                    string wwwRootPath = _hostEnvironment.WebRootPath;
-                    string fileName;
-                     fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
-                    string extension = Path.GetExtension(post.pictureFile.FileName);
-                    post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
-                    string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
 
-                    using (var fileStream = new FileStream(path, FileMode.Create))
-                    {
-                        await post.pictureFile.CopyToAsync(fileStream);
-                    }
-                }
-                catch (NullReferenceException  e )
+            string wwwRootPath = _hostEnvironment.WebRootPath;
+            string fileName;
+
+            try
+            {
+                fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
+                string extension = Path.GetExtension(post.pictureFile.FileName);
+                post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
+                string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
+
+                using (var fileStream = new FileStream(path, FileMode.Create))
                 {
-                    return Ok(e.Message);
-                }
-                catch (Exception e)
-                {
-                    return Ok(e.Message);
+                    await post.pictureFile.CopyToAsync(fileStream);
                 }
 
-                _context.Add(post);
+                if (post == null)
+                {
+                    return NotFound("Your post is empty!");
+                }
+                else
+                {
+                    _context.Add(post);
                     await _context.SaveChangesAsync();
-                    //return Ok();
-                    return Created("","dodano post o id: " +  post.id);
-                
-                
+                    return Created("", "dodano post o id: " + post.id);
+                }
+
+
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { errorMessage = e.Message });
+            }
+
         }
 
         [HttpPatch("{id}")]
-        public async Task<IActionResult> Patch([FromRoute] int id, [Bind("id,title,description,author,pictureFile")] Post post)
+        public async Task<IActionResult> Patch(int id, Post post)
         {
-            if (id != post.id)
+            try
             {
-                return BadRequest();
+                if (id != post.id)
+                {
+                    return NotFound();
+                }
+                else if (post == null)
+                {
+                    return NotFound("Your post is empty!");
+                }
+                else
+                {
+                    _context.Posts.Update(post);
+                    _context.SaveChanges();
+                    return Ok("Zaktualizowano post " + post.id);
+                }
             }
-
-            string wwwRootPath = _hostEnvironment.WebRootPath;
-            string fileName = Path.GetFileNameWithoutExtension(post.pictureFile.FileName);
-            string extension = Path.GetExtension(post.pictureFile.FileName);
-            post.pictureUrl = fileName = fileName + DateTime.Now.ToString("yymmss") + extension;
-            string path = Path.Combine(wwwRootPath + "/pictures/", fileName);
-
-            using (var fileStream = new FileStream(path, FileMode.Create))
+            catch (Exception e)
             {
-                post.pictureFile.CopyTo(fileStream);
+                return BadRequest(new { errorMessage = e.Message });
             }
-
-            _context.Posts.Update(post);
-            _context.SaveChanges();
-
-            return Ok();
         }
+
+
 
         [HttpDelete("{id}")]
         public IActionResult DeletePost(int id)
         {
-            var Post = _context.Posts.Find(id);
-
-            if (Post == null)
+            try
             {
-                return NotFound();
+                var Post = _context.Posts.Find(id);
+
+                if (Post == null)
+                {
+                    return NotFound();
+                }
+
+                _context.Posts.Remove(Post);
+                _context.SaveChanges();
+
+                return Ok(Post);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { errorMessage = e.Message });
             }
 
-            _context.Posts.Remove(Post);
-            _context.SaveChanges();
-
-            return Ok(Post);
         }
     }
 }
